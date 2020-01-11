@@ -1,0 +1,126 @@
+<script>
+
+   document.addEventListener('DOMContentLoaded', function() {
+    
+    var elems = document.querySelectorAll('select');
+    var instances = M.FormSelect.init(elems);
+    
+    var tips = document.querySelectorAll('.tooltipped');
+    var tipsFound = M.Tooltip.init(tips);
+    
+    const Calender = document.querySelectorAll('.datepicker');
+    M.Datepicker.init(Calender,{
+       format:'mm/dd/yyyy'
+       });
+   
+    document.getElementById("btn").addEventListener("click",getInputForm);
+    
+    google.script.run.withSuccessHandler(populateSources).getSources();
+    
+   });  // End DomContentLoaded
+  
+  
+  
+   function populateSources(sources) {
+    // alert(Object.keys(sources));
+    var autocomplete = document.getElementById('sourceInput');
+    var instances = M.Autocomplete.init(autocomplete, { data: sources });
+   }
+   
+   
+   
+   function getInputForm() {
+       // alert("At getInputForms function");
+       var userInfo = {};
+       
+       userInfo.property = document.getElementById("property").value;
+       userInfo.street = document.getElementById("street").value;
+       userInfo.source = document.getElementById("sourceInput").value;
+       userInfo.transType = document.getElementById("type_buyer").checked;
+       if (userInfo.transType == "true") 
+          { userInfo.transType = "BUYER"; }
+       else 
+          { userInfo.transType = "LISTING"; }
+       // alert("At agent");
+       userInfo.agent = document.getElementById("agent").value;
+       userInfo.contractDate = document.getElementById("contractDate").value;
+       userInfo.coeDate = document.getElementById("coeDate").value;
+       userInfo.salesPrice = document.getElementById("salesPrice").value;
+       userInfo.commission = document.getElementById("commission").value;
+       userInfo.robinsPercent = document.getElementById("robinsPercent").value
+       
+       var temp = userInfo.salesPrice;
+       userInfo.salesPrice = temp.replace("$", "").replace(",", "");
+       var GCIvalue = Number(userInfo.salesPrice) * (Number(userInfo.commission) / 100.00);  // Calculate Gross Commission
+       userInfo.GCI = GCIvalue.toString();
+       
+       userInfo.robinsNet = document.getElementById("robinsNet").value;
+       userInfo.tcFee = document.getElementById("tcFee").value;
+       // alert("userInfo complete");
+       
+       validateAllFields(userInfo);
+   }
+   
+   function validateAllFields(userInfo) {
+      // alert("At validateAllFields");
+      
+      var toValidate = {
+      property: "The Property Name is Required",
+      street: "A Street Number is Required",
+      sourceInput: "The Source is Required",
+      agent: "An Agent is Required",
+      contractDate: "The Contract Date is Required",
+      coeDate: "A Close of Escrow Date is Required",
+      salesPrice: "A Sales Price of the form 325,000.00 is Required",
+      commission: "A Commission Percent of the form 2.25 is Required",
+      robinsPercent: "Robins Percentage of the form 50 for 50% is Required",
+      robinsNet: "Robins Net Commission of the form 5,000.00 is Required",
+      tcFee: "A TC Fee of the form 495.00 or 0.00 is Required"
+      }
+      
+      var idKeys = Object.keys(toValidate);
+      
+      var allValid = true;
+      idKeys.forEach(function(id) {
+          var isValid = checkIfValid(id, toValidate[id]);
+          if (!isValid) {
+             allValid = false;
+             }
+          });
+          
+       alert("allValid: " + allValid);
+       if(allValid) {
+           addRecordAndResetFields(userInfo);
+           }
+           
+       }
+   
+   function addRecordAndResetFields(userInfo) {
+       //alert("At addRecordAndResetFields");
+       
+       google.script.run.userClicked(userInfo);
+       
+       document.getElementById("property").value = "";
+       document.getElementById("street").value = "";
+       
+       var sourceDD = document.getElementById("source");
+       sourceDD.selectedIndex = 0;
+       M.FormSelect.init(sourceDD);
+   }
+   
+   
+   function checkIfValid(elementId, message) {
+       var isValid = document.getElementById(elementId).checkValidity();
+       
+       if (!isValid) {
+          // warn the user
+          M.toast({html: message });
+          return false;
+       }
+       return true;
+   }
+
+</script>
+
+
+
